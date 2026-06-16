@@ -38,6 +38,9 @@ model User {
   bannerUrl    String?
   bio          String?
   accentColor  String?
+  // Global site owner/admin flags
+  isSiteOwner  Boolean  @default(false)
+  isSiteAdmin  Boolean  @default(false)
   // TOTP-based two-factor authentication.
   totpSecret       String?
   twoFactorEnabled Boolean  @default(false)
@@ -58,6 +61,8 @@ model User {
   conversations     ConversationMember[]
   issuedModeration  ModerationAction[]  @relation("ModerationActor")
   receivedModeration ModerationAction[] @relation("ModerationTarget")
+  issuedSiteModeration GlobalModerationAction[] @relation("SiteModActor")
+  receivedSiteModeration GlobalModerationAction[] @relation("SiteModTarget")
   sentFriendRequests     Friendship[]   @relation("FriendRequester")
   receivedFriendRequests Friendship[]   @relation("FriendAddressee")
 }
@@ -284,7 +289,21 @@ model PollVote {
   @@index([optionId])
 }
 
-// A user's saved/bookmarked message.
+// Global site-wide bans/timeouts (independent of servers).
+model GlobalModerationAction {
+  id        String   @id @default(cuid())
+  type      ModerationType
+  actorId   String
+  actor     User     @relation("SiteModActor", fields: [actorId], references: [id])
+  targetId  String
+  target    User     @relation("SiteModTarget", fields: [targetId], references: [id])
+  reason    String?
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([actorId])
+  @@index([targetId])
+}
 model Bookmark {
   id        String   @id @default(cuid())
   userId    String
