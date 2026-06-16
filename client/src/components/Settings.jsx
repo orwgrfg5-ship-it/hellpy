@@ -52,48 +52,48 @@ export default function Settings({ user, onClose, onUpdated }) {
   function pickTheme(t) { setTheme(t); applyTheme(t); }
 
   return (
-    <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60">
-      <div className="flex h-[520px] w-[720px] overflow-hidden rounded-xl bg-[var(--bg-2)] text-[var(--text)] shadow-2xl">
-        {/* Settings nav */}
-        <div className="w-48 space-y-1 bg-[var(--bg-1)] p-3">
+    <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/60 p-4">
+      <div className="flex flex-col md:flex-row h-[520px] w-full md:w-[720px] max-h-[90vh] overflow-hidden rounded-xl bg-[var(--bg-2)] text-[var(--text)] shadow-2xl">
+        {/* Settings nav - horizontal on mobile, vertical on desktop */}
+        <div className="w-full md:w-48 flex md:flex-col space-x-1 md:space-x-0 md:space-y-1 bg-[var(--bg-1)] p-3 overflow-x-auto md:overflow-x-visible border-b md:border-b-0 md:border-r border-[var(--bg-3)]">
           <p className="px-2 py-1 text-xs uppercase text-[var(--muted)]">User Settings</p>
           {['profile', 'appearance', 'security'].map((t) => (
             <button key={t} onClick={() => setTab(t)}
-              className={`block w-full rounded px-2 py-1 text-left capitalize ${tab === t ? 'bg-[var(--bg-3)]' : 'hover:bg-[var(--bg-3)]'}`}>{t}</button>
+              className={`block whitespace-nowrap md:w-full rounded px-2 py-1 text-left capitalize text-sm md:text-base ${tab === t ? 'bg-[var(--bg-3)]' : 'hover:bg-[var(--bg-3)]'}`}>{t}</button>
           ))}
-          <button onClick={onClose} className="mt-4 block w-full rounded px-2 py-1 text-left text-red-400 hover:bg-[var(--bg-3)]">Close</button>
+          <button onClick={onClose} className="ml-auto md:ml-0 md:mt-4 block whitespace-nowrap md:w-full rounded px-2 py-1 text-left text-red-400 hover:bg-[var(--bg-3)] text-sm md:text-base">Close</button>
         </div>
 
         {/* Panel */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6">
           {tab === 'profile' && (
             <div className="space-y-4">
               <h3 className="text-lg font-bold">Profile</h3>
               <div
-                className="h-24 rounded-lg"
+                className="h-16 md:h-24 rounded-lg"
                 style={{ background: form.bannerUrl ? `center/cover url(${form.bannerUrl})` : form.accentColor }}
               />
-              <label className="block text-sm">Display name
+              <label className="block text-xs md:text-sm">Display name
                 <input value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })}
-                  className="mt-1 w-full rounded bg-[var(--bg-3)] px-3 py-2 outline-none" placeholder={user.username} />
+                  className="mt-1 w-full rounded bg-[var(--bg-3)] px-3 py-2 text-sm outline-none" placeholder={user.username} />
               </label>
-              <label className="block text-sm">Bio
+              <label className="block text-xs md:text-sm">Bio
                 <textarea value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })}
-                  className="mt-1 w-full rounded bg-[var(--bg-3)] px-3 py-2 outline-none" rows={3} />
+                  className="mt-1 w-full rounded bg-[var(--bg-3)] px-3 py-2 text-sm outline-none" rows={3} />
               </label>
-              <div className="flex gap-3">
-                <label className="text-sm">Accent
+              <div className="flex gap-3 flex-col md:flex-row">
+                <label className="text-xs md:text-sm">Accent
                   <input type="color" value={form.accentColor} onChange={(e) => setForm({ ...form, accentColor: e.target.value })}
                     className="mt-1 block h-9 w-16 rounded bg-transparent" />
                 </label>
-                <label className="flex-1 text-sm">Avatar URL
+                <label className="flex-1 text-xs md:text-sm">Avatar URL
                   <input value={form.avatarUrl} onChange={(e) => setForm({ ...form, avatarUrl: e.target.value })}
-                    className="mt-1 w-full rounded bg-[var(--bg-3)] px-3 py-2 outline-none" placeholder="https://..." />
+                    className="mt-1 w-full rounded bg-[var(--bg-3)] px-3 py-2 text-sm outline-none" placeholder="https://..." />
                 </label>
               </div>
-              <label className="block text-sm">Banner URL
+              <label className="block text-xs md:text-sm">Banner URL
                 <input value={form.bannerUrl} onChange={(e) => setForm({ ...form, bannerUrl: e.target.value })}
-                  className="mt-1 w-full rounded bg-[var(--bg-3)] px-3 py-2 outline-none" placeholder="https://..." />
+                  className="mt-1 w-full rounded bg-[var(--bg-3)] px-3 py-2 text-sm outline-none" placeholder="https://..." />
               </label>
               <div className="flex items-center gap-3">
                 <button onClick={saveProfile} className="rounded bg-[var(--accent)] px-4 py-2 font-medium text-white">Save</button>
@@ -156,16 +156,59 @@ export default function Settings({ user, onClose, onUpdated }) {
           )}
 
           {tab === 'appearance' && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-bold">Appearance</h3>
-              <p className="text-sm text-[var(--muted)]">Theme</p>
-              <div className="flex gap-3">
-                {['dark', 'light'].map((t) => (
-                  <button key={t} onClick={() => pickTheme(t)}
-                    className={`rounded-lg border px-6 py-3 capitalize ${theme === t ? 'border-[var(--accent)]' : 'border-transparent'} ${t === 'dark' ? 'bg-[#1e1f22] text-white' : 'bg-white text-black'}`}>
-                    {t}
-                  </button>
-                ))}
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-bold mb-4">Appearance</h3>
+                
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm font-medium text-[var(--text)] mb-3">Theme</p>
+                    <div className="flex gap-3">
+                      {['dark', 'light'].map((t) => (
+                        <button key={t} onClick={() => pickTheme(t)}
+                          className={`rounded-lg border px-6 py-3 capitalize transition ${theme === t ? 'border-[var(--accent)] bg-[var(--bg-3)]' : 'border-transparent hover:bg-[var(--bg-3)]'} ${t === 'dark' ? 'bg-[#1e1f22] text-white' : 'bg-white text-black'}`}>
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="border-t border-[var(--bg-3)] pt-4">
+                    <p className="text-sm font-medium text-[var(--text)] mb-2">Mobile Settings</p>
+                    <div className="space-y-2 text-sm text-[var(--muted)]">
+                      <div className="flex items-start gap-2">
+                        <span className="text-base">📱</span>
+                        <div>
+                          <p className="font-medium text-[var(--text)]">Full-width layout</p>
+                          <p className="text-xs">Optimized for mobile and tablet screens</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="text-base">👆</span>
+                        <div>
+                          <p className="font-medium text-[var(--text)]">Touch-friendly UI</p>
+                          <p className="text-xs">Larger buttons and inputs for easier tapping</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="text-base">⌚</span>
+                        <div>
+                          <p className="font-medium text-[var(--text)]">Safe area support</p>
+                          <p className="text-xs">Respects notches and rounded corners on all devices</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="border-t border-[var(--bg-3)] pt-4">
+                    <p className="text-xs uppercase text-[var(--muted)] tracking-wider">Browser Info</p>
+                    <div className="mt-2 text-xs text-[var(--muted)] space-y-1">
+                      <p>Viewport: {window.innerWidth}x{window.innerHeight}px</p>
+                      <p>Device: {/iPhone|iPad|Android/.test(navigator.userAgent) ? '📱 Mobile' : '💻 Desktop'}</p>
+                      <p>Touch support: {('ontouchstart' in window || navigator.maxTouchPoints > 0) ? '✓ Yes' : '✗ No'}</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
