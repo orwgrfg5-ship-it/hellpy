@@ -1,0 +1,51 @@
+# Basic CI for Helppy: validate the server (deps + Prisma schema) and build the client.
+# These run on every push and merge request.
+
+stages:
+  - validate
+  - build
+
+default:
+  image: node:20-alpine
+
+# Cache node_modules per package to speed up repeat runs.
+.cache_template: &node_cache
+  cache:
+    key:
+      files:
+        - $CI_PROJECT_DIR/package-lock.json
+    paths:
+      - .npm/
+
+server:validate:
+  stage: validate
+  <<: *node_cache
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+  before_script:
+    - cd server
+    - npm install --no-audit --no-fund
+  script:
+    # Generate the Prisma client and validate the schema is well-formed.
+    - npx prisma generate
+    - npx prisma validate
+    # Syntax-check every JS source file (no test suite yet).
+    - node -e "require('fs').readdirSync('src',{recursive:true}).filter(f=>f.endsWith('.js')).forEach(f=>require('child_process').execSync('node --check src/'+f,{stdio:'inherit'}))"
+
+client:build:
+  stage: build
+  <<: *node_cache
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+  before_script:
+    - cd client
+    - npm install --no-audit --no-fund
+  script:
+    # Production build catches import/JSX errors.
+    - npm run build
+  artifacts:
+    paths:
+      - client/dist
+    expire_in: 1 week

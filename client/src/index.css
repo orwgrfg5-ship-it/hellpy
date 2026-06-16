@@ -36,3 +36,52 @@ body { background: var(--bg-2); color: var(--text); }
 .presence-AWAY { background: #f0b232; }
 .presence-BUSY { background: #f23f43; }
 .presence-OFFLINE { background: #80848e; }
+
+/* Mobile responsive utilities */
+@media (max-width: 768px) {
+  /* Hide desktop sidebars on mobile */
+  .sidebar-desktop { display: none !important; }
+  
+  /* Mobile button sizing - touch-friendly (min 44x44px) */
+  button, .btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Full-width forms on mobile */
+  input, textarea, select {
+    font-size: 16px; /* Prevents iOS zoom on input focus */
+  }
+  
+  /* Stack layout vertically on mobile */
+  .flex-row-desktop { flex-direction: column; }
+  
+  /* Responsive padding */
+  .p-desktop { padding: 0.5rem; }
+  .p-4-desktop { padding: 1rem; }
+  
+  /* Hide unnecessary elements on mobile */
+  .hide-mobile { display: none !important; }
+}
+
+@media (min-width: 769px) {
+  /* Show desktop elements only on desktop */
+  .show-mobile { display: none !important; }
+}
+
+/* Safe area insets for notched devices */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+    padding-top: max(12px, env(safe-area-inset-top));
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+}
+
+/* Prevent text selection on mobile UI elements */
+.no-select { user-select: none; -webkit-user-select: none; }
+
+/* Mobile-friendly scroll snap */
+.snap-scroll { scroll-snap-type: y proximity; }
+.snap-item { scroll-snap-align: start; }
