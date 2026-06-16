@@ -1,0 +1,326 @@
+// Prisma schema for the Helppy MVP messaging platform.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ServerRole {
+  OWNER
+  ADMIN
+  MODERATOR
+  MEMBER
+}
+
+enum ConversationType {
+  DIRECT
+  GROUP
+}
+
+enum PresenceStatus {
+  ONLINE
+  AWAY
+  BUSY
+  OFFLINE
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  email        String   @unique
+  passwordHash String
+  displayName  String?
+  avatarUrl    String?
+  bannerUrl    String?
+  bio          String?
+  accentColor  String?
+  // TOTP-based two-factor authentication.
+  totpSecret       String?
+  twoFactorEnabled Boolean  @default(false)
+  // Hashed single-use recovery codes (JSON array of bcrypt hashes).
+  recoveryCodes    String?
+  // Presence. When invisible = true the user appears OFFLINE to others.
+  presence     PresenceStatus @default(OFFLINE)
+  invisible    Boolean        @default(false)
+  lastSeenAt   DateTime?
+  // TODO(2FA): add totpSecret + twoFactorEnabled fields when enabling 2FA.
+  createdAt    DateTime @default(now())
+
+  sessions          Session[]
+  ownedServers      Server[]            @relation("ServerOwner")
+  memberships       ServerMember[]
+  messages          Message[]
+  reactions         Reaction[]
+  conversations     ConversationMember[]
+  issuedModeration  ModerationAction[]  @relation("ModerationActor")
+  receivedModeration ModerationAction[] @relation("ModerationTarget")
+  sentFriendRequests     Friendship[]   @relation("FriendRequester")
+  receivedFriendRequests Friendship[]   @relation("FriendAddressee")
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  BLOCKED
+}
+
+model Friendship {
+  id          String           @id @default(cuid())
+  // The user who initiated the request.
+  requesterId String
+  requester   User             @relation("FriendRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  // The user who receives the request.
+  addresseeId String
+  addressee   User             @relation("FriendAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+  status      FriendshipStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([requesterId, addresseeId])
+  @@index([addresseeId])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Stored so users can list and revoke active devices/sessions.
+  userAgent String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([userId])
+}
+
+model Server {
+  id        String   @id @default(cuid())
+  name      String
+  ownerId   String
+  owner     User     @relation("ServerOwner", fields: [ownerId], references: [id])
+  createdAt DateTime @default(now())
+
+  members    ServerMember[]
+  channels   Channel[]
+  invites    Invite[]
+  categories Category[]
+}
+
+// A named group of channels within a server (for sidebar organization).
+model Category {
+  id       String    @id @default(cuid())
+  serverId String
+  server   Server    @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  name     String
+  position Int       @default(0)
+  channels Channel[]
+
+  @@index([serverId])
+}
+
+model ServerMember {
+  id        String     @id @default(cuid())
+  serverId  String
+  server    Server     @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      ServerRole @default(MEMBER)
+  // Used for timeout/mute moderation. Null = active.
+  mutedUntil   DateTime?
+  timeoutUntil DateTime?
+  joinedAt  DateTime   @default(now())
+
+  @@unique([serverId, userId])
+  @@index([userId])
+}
+
+model Channel {
+  id         String    @id @default(cuid())
+  serverId   String
+  server     Server    @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  name       String
+  topic      String?
+  // Slowmode delay in seconds between messages. 0 = disabled.
+  slowmode   Int       @default(0)
+  createdAt  DateTime  @default(now())
+
+  messages   Message[]
+  readStates ChannelReadState[]
+
+  @@index([serverId])
+  @@index([categoryId])
+}
+
+// Tracks how far each user has read in a channel (for unread badges).
+model ChannelReadState {
+  id                String   @id @default(cuid())
+  channelId         String
+  channel           Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  userId            String
+  lastReadMessageId String?
+  lastReadAt        DateTime @default(now())
+
+  @@unique([channelId, userId])
+  @@index([userId])
+}
+
+model Conversation {
+  id        String           @id @default(cuid())
+  type      ConversationType @default(DIRECT)
+  name      String?
+  createdAt DateTime         @default(now())
+
+  members  ConversationMember[]
+  messages Message[]
+}
+
+model ConversationMember {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Read-receipt tracking: last message this member has read.
+  lastReadMessageId String?
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+}
+
+model Message {
+  id             String        @id @default(cuid())
+  authorId       String
+  author         User          @relation(fields: [authorId], references: [id])
+  content        String
+  // A message belongs to either a Channel or a Conversation.
+  channelId      String?
+  channel        Channel?      @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  conversationId String?
+  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  // Threads: a reply points at its parent message.
+  parentId       String?
+  parent         Message?      @relation("MessageThread", fields: [parentId], references: [id])
+  replies        Message[]     @relation("MessageThread")
+  pinned         Boolean       @default(false)
+  editedAt       DateTime?
+  deletedAt      DateTime?
+  createdAt      DateTime      @default(now())
+
+  reactions Reaction[]
+
+  @@index([channelId])
+  @@index([conversationId])
+  @@index([parentId])
+}
+
+model Reaction {
+  id        String  @id @default(cuid())
+  messageId String
+  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emoji     String
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+}
+
+model Invite {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  serverId  String
+  server    Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  expiresAt DateTime?
+}
+
+enum ModerationType {
+  KICK
+  BAN
+  TIMEOUT
+  MUTE
+}
+
+// A poll attached to a channel or conversation.
+model Poll {
+  id             String       @id @default(cuid())
+  authorId       String
+  question       String
+  channelId      String?
+  conversationId String?
+  multiple       Boolean      @default(false)
+  closesAt       DateTime?
+  createdAt      DateTime     @default(now())
+
+  options PollOption[]
+
+  @@index([channelId])
+  @@index([conversationId])
+}
+
+model PollOption {
+  id     String     @id @default(cuid())
+  pollId String
+  poll   Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  text   String
+  votes  PollVote[]
+
+  @@index([pollId])
+}
+
+model PollVote {
+  id       String     @id @default(cuid())
+  optionId String
+  option   PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  userId   String
+
+  @@unique([optionId, userId])
+  @@index([optionId])
+}
+
+// A user's saved/bookmarked message.
+model Bookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  messageId String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, messageId])
+  @@index([userId])
+}
+
+// A message queued to be sent at a future time.
+model ScheduledMessage {
+  id             String   @id @default(cuid())
+  authorId       String
+  content        String
+  channelId      String?
+  conversationId String?
+  sendAt         DateTime
+  sentAt         DateTime?
+  createdAt      DateTime @default(now())
+
+  @@index([authorId])
+  @@index([sendAt, sentAt])
+}
+
+model ModerationAction {
+  id        String         @id @default(cuid())
+  serverId  String
+  type      ModerationType
+  actorId   String
+  actor     User           @relation("ModerationActor", fields: [actorId], references: [id])
+  targetId  String
+  target    User           @relation("ModerationTarget", fields: [targetId], references: [id])
+  reason    String?
+  expiresAt DateTime?
+  createdAt DateTime       @default(now())
+
+  @@index([serverId])
+}

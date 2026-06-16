@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root { height: 100%; margin: 0; }
+body { font-family: ui-sans-serif, system-ui, sans-serif; }
+
+/* App color tokens. Default = dark theme. */
+:root, :root[data-theme="dark"] {
+  --bg-0: #1e1f22; /* darkest rail */
+  --bg-1: #2b2d31; /* sidebar */
+  --bg-2: #313338; /* main */
+  --bg-3: #383a40; /* inputs/hover */
+  --text: #f2f3f5;
+  --muted: #b5bac1;
+  --accent: #5865f2;
+}
+
+:root[data-theme="light"] {
+  --bg-0: #e3e5e8;
+  --bg-1: #f2f3f5;
+  --bg-2: #ffffff;
+  --bg-3: #e7e9ec;
+  --text: #060607;
+  --muted: #5c5e66;
+  --accent: #5865f2;
+}
+
+body { background: var(--bg-2); color: var(--text); }
+
+.scroll-thin::-webkit-scrollbar { width: 8px; }
+.scroll-thin::-webkit-scrollbar-thumb { background: #1a1b1e; border-radius: 4px; }
+
+.presence-dot { width: 10px; height: 10px; border-radius: 9999px; display: inline-block; }
+.presence-ONLINE { background: #23a55a; }
+.presence-AWAY { background: #f0b232; }
+.presence-BUSY { background: #f23f43; }
+.presence-OFFLINE { background: #80848e; }

@@ -1,0 +1,47 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-helppy}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-helppy}
+      POSTGRES_DB: ${POSTGRES_DB:-helppy}
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-helppy}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  server:
+    build: ./server
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-helppy}:${POSTGRES_PASSWORD:-helppy}@db:5432/${POSTGRES_DB:-helppy}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      PORT: 4000
+      CLIENT_ORIGIN: ${CLIENT_ORIGIN:-http://localhost:5173}
+    ports:
+      - "4000:4000"
+    command: sh -c "npx prisma migrate deploy && node src/index.js"
+
+  client:
+    build: ./client
+    restart: unless-stopped
+    depends_on:
+      - server
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:4000}
+    ports:
+      - "5173:80"
+
+volumes:
+  db_data:
