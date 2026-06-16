@@ -53,18 +53,32 @@ export default function Settings({ user, onClose, onUpdated }) {
 
   return (
     <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/60 p-4">
-      <div className="flex flex-col md:flex-row h-[520px] w-full md:w-[720px] max-h-[90vh] overflow-hidden rounded-xl bg-[var(--bg-2)] text-[var(--text)] shadow-2xl">
-        {/* Settings nav - horizontal on mobile, vertical on desktop */}
-        <div className="w-full md:w-48 flex md:flex-col space-x-1 md:space-x-0 md:space-y-1 bg-[var(--bg-1)] p-3 overflow-x-auto md:overflow-x-visible border-b md:border-b-0 md:border-r border-[var(--bg-3)]">
-          <p className="px-2 py-1 text-xs uppercase text-[var(--muted)]">User Settings</p>
+      <div className="flex flex-col h-[520px] w-full md:w-[720px] max-h-[90vh] overflow-hidden rounded-xl bg-[var(--bg-2)] text-[var(--text)] shadow-2xl">
+        {/* Tab Navigation - Clickable tabs */}
+        <div className="flex gap-0 bg-[var(--bg-1)] border-b border-[var(--bg-3)]">
           {['profile', 'appearance', 'security'].map((t) => (
-            <button key={t} onClick={() => setTab(t)}
-              className={`block whitespace-nowrap md:w-full rounded px-2 py-1 text-left capitalize text-sm md:text-base ${tab === t ? 'bg-[var(--bg-3)]' : 'hover:bg-[var(--bg-3)]'}`}>{t}</button>
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`flex-1 px-4 py-3 text-sm font-medium capitalize transition border-b-2 ${
+                tab === t
+                  ? 'border-[var(--accent)] text-[var(--accent)]'
+                  : 'border-transparent text-[var(--muted)] hover:text-[var(--text)]'
+              }`}
+            >
+              {t}
+            </button>
           ))}
-          <button onClick={onClose} className="ml-auto md:ml-0 md:mt-4 block whitespace-nowrap md:w-full rounded px-2 py-1 text-left text-red-400 hover:bg-[var(--bg-3)] text-sm md:text-base">Close</button>
+          <button
+            onClick={onClose}
+            className="px-4 py-3 text-red-400 hover:bg-[var(--bg-3)] transition min-w-max"
+            title="Close settings"
+          >
+            ✕
+          </button>
         </div>
 
-        {/* Panel */}
+        {/* Tab Content */}
         <div className="flex-1 overflow-y-auto p-4 md:p-6">
           {tab === 'profile' && (
             <div className="space-y-4">
@@ -96,7 +110,7 @@ export default function Settings({ user, onClose, onUpdated }) {
                   className="mt-1 w-full rounded bg-[var(--bg-3)] px-3 py-2 text-sm outline-none" placeholder="https://..." />
               </label>
               <div className="flex items-center gap-3">
-                <button onClick={saveProfile} className="rounded bg-[var(--accent)] px-4 py-2 font-medium text-white">Save</button>
+                <button onClick={saveProfile} className="rounded bg-[var(--accent)] px-4 py-2 font-medium text-white min-h-10">Save</button>
                 {saved && <span className="text-sm text-green-400">{saved}</span>}
               </div>
             </div>
